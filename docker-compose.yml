@@ -80,6 +80,7 @@ services:
       - "${N8N_PORT}:${N8N_PORT}"
     environment:
       - QUEUE_BULL_REDIS_PASSWORD=${REDIS_PASSWORD}
+      - N8N_COMMUNITY_PACKAGES_INSTALLED=n8n-nodes-evolution-api
     volumes:
       - n8n_data:/home/node/.n8n
     depends_on:
