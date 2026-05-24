@@ -24,7 +24,7 @@ Este projeto configura uma infraestrutura completa para automação de WhatsApp 
 
 ## 🔗 Acessos Locais
 
-- **Evolution API:** [http://localhost:8080](http://localhost:8080)
+- **Evolution API:** [http://localhost:8080/manager/login](http://localhost:8080/manager/login)
 - **n8n:** [http://localhost:5678](http://localhost:5678)
 - **Traefik Dashboard:** [http://localhost:8081](http://localhost:8081)
 
