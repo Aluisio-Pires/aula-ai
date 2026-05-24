@@ -49,6 +49,26 @@ services:
     networks:
       - evolution_network
 
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: redis-commander
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      - REDIS_HOSTS=local:redis:6379:0:${REDIS_PASSWORD}
+    depends_on:
+      redis:
+        condition: service_healthy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.redis-commander.rule=Host(`localhost`) && PathPrefix(`/redis-commander`)"
+      - "traefik.http.routers.redis-commander.entrypoints=web"
+      - "traefik.http.middlewares.redis-commander-strip.stripprefix.prefixes=/redis-commander"
+      - "traefik.http.routers.redis-commander.middlewares=redis-commander-strip"
+      - "traefik.http.services.redis-commander.loadbalancer.server.port=8081"
+    networks:
+      - evolution_network
+
   evolution:
     image: evoapicloud/evolution-go:latest
     container_name: evolution
@@ -95,6 +115,24 @@ services:
       - "traefik.http.middlewares.n8n-strip.stripprefix.prefixes=/n8n"
       - "traefik.http.routers.n8n.middlewares=n8n-strip"
       - "traefik.http.services.n8n.loadbalancer.server.port=${N8N_PORT}"
+    networks:
+      - evolution_network
+
+  n8n-worker:
+    image: n8nio/n8n:latest
+    container_name: n8n-worker
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      - N8N_EXECUTIONS_PROCESS=worker
+      - QUEUE_BULL_REDIS_PASSWORD=${REDIS_PASSWORD}
+    volumes:
+      - n8n_data:/home/node/.n8n
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - evolution_network
 
