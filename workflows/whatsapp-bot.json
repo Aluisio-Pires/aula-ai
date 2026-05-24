@@ -1,0 +1,257 @@
+{
+  "name": "WhatsApp Shop Bot - AI + PDF + Media Handling",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "aulaia",
+        "options": {}
+      },
+      "id": "f518d2c1-2903-4a1c-b62c-b5472954b5f3",
+      "name": "Webhook Evolution API",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -656,
+        208
+      ],
+      "webhookId": "64127ce3-fb38-4846-9355-494ef2109642"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.body.data.Info.IsGroup }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "3ab9d659-487b-4279-88be-db31add58110",
+      "name": "Is Group?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -448,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.body.data.Info.Type }}",
+              "value2": "media"
+            }
+          ]
+        }
+      },
+      "id": "3b71d503-edad-41cb-9d2e-4da6d294dca0",
+      "name": "Is Image?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -112,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ ($json.body.data.Message.conversation || $json.body.data.Message.extendedTextMessage.text || '').toLowerCase() }}",
+              "operation": "contains",
+              "value2": "catalogo"
+            }
+          ]
+        }
+      },
+      "id": "d569bbb0-a2b3-45c6-b714-c3155f8061a5",
+      "name": "Wants Catalog?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        112,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "text": "={{ ($json.body.data.Message.conversation || $json.body.data.Message.extendedTextMessage.text || '') }}",
+        "options": {
+          "systemMessage": "Voce é um atendente da Boticário, seja cordial, busque os preços na internet e venda a 130% do valor da internet. Não fale ao usuário sobre o quanto você ganha em cima do produto, seja um vendedor inteligente"
+        }
+      },
+      "id": "f5d6ba58-63cf-4cea-93f8-8d2809dfe6e5",
+      "name": "AI Agent (OpenAI)",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1,
+      "position": [
+        336,
+        256
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-5-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        336,
+        480
+      ],
+      "id": "7909faaa-d2fc-4289-95a4-9bb47a7d5722",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "TOkIskQLKZkSnGKG",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "sendMessage",
+        "instanceApiKey": "b8454118-1ae2-4818-a9d2-81ea2eea625b",
+        "sendTextNumber": "={{ $('Webhook Evolution API').item.json.body.data.Info.Sender }}",
+        "sendTextContent": "={{ $json.output }}",
+        "sendTextAdditionalFields": {},
+        "requestOptions": {}
+      },
+      "type": "n8n-nodes-evolution-go.evoGo",
+      "typeVersion": 1,
+      "position": [
+        688,
+        256
+      ],
+      "id": "230b8e4f-b4d0-494c-a3cd-243015d9d999",
+      "name": "Send text message",
+      "credentials": {
+        "evoGoApi": {
+          "id": "QN3FoY1Qvd8jbZQC",
+          "name": "EvoGo account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.body.data.Info.Sender }}",
+        "contextWindowLength": 15
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        464,
+        608
+      ],
+      "id": "af08a1c0-09ee-4627-ad64-267e1b907e2c",
+      "name": "Simple Memory"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook Evolution API": {
+      "main": [
+        [
+          {
+            "node": "Is Group?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Group?": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Is Image?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wants Catalog?": {
+      "main": [
+        [],
+        [
+          {
+            "node": "AI Agent (OpenAI)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent (OpenAI)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent (OpenAI)": {
+      "main": [
+        [
+          {
+            "node": "Send text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Image?": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Wants Catalog?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent (OpenAI)",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "e1ea1e49-1f67-4b79-bb9a-4620c04aae15",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "09b90df9618dabf18e193bf17bdddb5a1f7e7f78869aa08a348d3436502293d0"
+  },
+  "id": "P0JmTgCAq6PrTRB6",
+  "tags": []
+}
