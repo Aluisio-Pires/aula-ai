@@ -1,0 +1,415 @@
+{
+  "name": "WhatsApp Bot - OpenAI + Gemini + Redis",
+  "nodes": [
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Webhook Evolution API').item.json.body.data.Info.Sender }}",
+        "contextWindowLength": 15
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryRedisChat",
+      "typeVersion": 1.6,
+      "position": [
+        1488,
+        1424
+      ],
+      "id": "eb39a256-d656-416c-9116-7b034d37b2dc",
+      "name": "Redis Chat Memory",
+      "credentials": {
+        "redis": {
+          "id": "mCuq2P1j1XaD68Dv",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "whatsapp-bot",
+        "options": {}
+      },
+      "id": "81511f32-e6f0-4ca9-b410-312204dbb0ca",
+      "name": "Webhook Evolution API",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        176,
+        1216
+      ],
+      "webhookId": "f88ccd5b-1e82-4370-a88e-eb82b17ad795"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $node[\"Webhook Evolution API\"].json.body.data.Message.conversation || $node[\"Webhook Evolution API\"].json.body.data.Message.extendedTextMessage.text }}",
+        "needsFallback": true,
+        "options": {
+          "systemMessage": "Você é o 'Max', assistente da Aula AI Shop.\n\nDados da Loja:\n- Nome: Aula AI Shop\n- Promo: 10% OFF no PIX\n- Frete: Grátis acima de R$ 200\n\nResponda com cordialidade."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1392,
+        1232
+      ],
+      "id": "2dc0f069-6260-414d-a6a7-cc345016e64e",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-flash-lite-latest",
+        "options": {}
+      },
+      "id": "e9c826e0-1265-4c2c-b315-2a29b6c43778",
+      "name": "Fallback Model (Gemini)",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1440,
+        1520
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "ekBnwAyXmCzkFAV2",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "gpt-5.4-mini",
+        "options": {}
+      },
+      "id": "941fb83f-3b7c-4b59-b55b-749e01835c27",
+      "name": "Main Model (GPT)",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [
+        1392,
+        1424
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "TOkIskQLKZkSnGKG",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.output }}",
+              "value2": "CATALOGO"
+            }
+          ]
+        }
+      },
+      "id": "ea56b011-2a01-4b2e-bbdb-fc1688e0dcaa",
+      "name": "Route: Catalog?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1088,
+        1216
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.body.data.Info.IsGroup }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "b7b52259-e947-4aea-ae17-048629719baa",
+      "name": "Is Group?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        368,
+        1216
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.body.data.Info.Type }}",
+              "value2": "text"
+            },
+            {
+              "value1": "={{ $json.body.data.Info.Type }}",
+              "value2": "extendedTextMessage"
+            }
+          ]
+        },
+        "combineOperation": "any"
+      },
+      "id": "e8f75978-6fe1-4ace-9a87-6a9c6e6c15d7",
+      "name": "Is Text?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        576,
+        1232
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Você é um classificador.\n\nAnalise a mensagem do usuário e responda APENAS com uma destas palavras:\n\nCATALOGO\nOUTRO\n\nUse CATALOGO quando o usuário:\n- pedir produtos\n- pedir cardápio\n- perguntar preços\n- quiser ver itens disponíveis\n- pedir catálogo\n\nUse OUTRO para qualquer outro assunto.\n\nMensagem:\n{{ $node[\"Webhook Evolution API\"].json.body.data.Message.conversation || $node[\"Webhook Evolution API\"].json.body.data.Message.extendedTextMessage.text }}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        768,
+        1216
+      ],
+      "id": "6a70001b-dc1d-49c9-a11a-308702481927",
+      "name": "AI Agent1"
+    },
+    {
+      "parameters": {
+        "resource": "sendMessage",
+        "instanceApiKey": "b8454118-1ae2-4818-a9d2-81ea2eea625b",
+        "sendTextNumber": "={{ $('Webhook Evolution API').item.json.body.data.Info.Sender }}",
+        "sendTextContent": "Por favor, utilize mensagens de texto para se comunicar",
+        "sendTextAdditionalFields": {},
+        "requestOptions": {}
+      },
+      "type": "n8n-nodes-evolution-go.evoGo",
+      "typeVersion": 1,
+      "position": [
+        688,
+        1552
+      ],
+      "id": "c535d15f-3439-4574-a348-a45d42556c85",
+      "name": "Send text message",
+      "credentials": {
+        "evoGoApi": {
+          "id": "QN3FoY1Qvd8jbZQC",
+          "name": "EvoGo account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-flash-lite-latest",
+        "options": {}
+      },
+      "id": "4b7299c4-3d5f-4763-b2a2-5256448c0546",
+      "name": "Gemini",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        768,
+        1408
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "ekBnwAyXmCzkFAV2",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "sendMessage",
+        "instanceApiKey": "b8454118-1ae2-4818-a9d2-81ea2eea625b",
+        "sendTextNumber": "={{ $('Webhook Evolution API').item.json.body.data.Info.Sender }}",
+        "sendTextContent": "={{ $json.output }}",
+        "sendTextAdditionalFields": {},
+        "requestOptions": {}
+      },
+      "type": "n8n-nodes-evolution-go.evoGo",
+      "typeVersion": 1,
+      "position": [
+        1744,
+        1232
+      ],
+      "id": "3b127500-08f4-4c97-b91f-d2b614dd0323",
+      "name": "Send text message1",
+      "credentials": {
+        "evoGoApi": {
+          "id": "QN3FoY1Qvd8jbZQC",
+          "name": "EvoGo account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "sendMessage",
+        "operation": "sendMedia",
+        "instanceApiKey": "b8454118-1ae2-4818-a9d2-81ea2eea625b",
+        "sendMediaNumber": "={{ $('Webhook Evolution API').item.json.body.data.Info.Sender }}",
+        "sendMediaUrl": "https://fonif.org.br/wp-content/uploads/2016/10/TESTE-DOWNLOAD-PDF.pdf",
+        "sendMediaCaption": "Este é o nosso menu",
+        "sendMediaFilename": "cardapio.pdf",
+        "sendMediaAdditionalFields": {},
+        "requestOptions": {}
+      },
+      "type": "n8n-nodes-evolution-go.evoGo",
+      "typeVersion": 1,
+      "position": [
+        1296,
+        1120
+      ],
+      "id": "b72d78f4-1a99-463d-8b1f-96b2870748de",
+      "name": "Send media from URL",
+      "credentials": {
+        "evoGoApi": {
+          "id": "QN3FoY1Qvd8jbZQC",
+          "name": "EvoGo account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Redis Chat Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fallback Model (Gemini)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Main Model (GPT)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route: Catalog?": {
+      "main": [
+        [
+          {
+            "node": "Send media from URL",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Group?": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Is Text?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook Evolution API": {
+      "main": [
+        [
+          {
+            "node": "Is Group?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Send text message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Text?": {
+      "main": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1": {
+      "main": [
+        [
+          {
+            "node": "Route: Catalog?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "cd3bcf7d-98c0-4610-987e-f8d0ed15484d",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "09b90df9618dabf18e193bf17bdddb5a1f7e7f78869aa08a348d3436502293d0"
+  },
+  "id": "F0RATAAR2RDfdPJZ",
+  "tags": []
+}
